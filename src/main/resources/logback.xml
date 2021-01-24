@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration debug="false" scan="true" scanPeriod="30 seconds">
+    <property name="log.dir" value="target/logs"/>
+    <property name="encoding" value="UTF-8"/>
+    <property name="plain" value="%msg%n"/>
+    <property name="std" value="%d{HH:mm:ss.SSS}[%thread][%-5level]%msg %X{user}"/>
+    <property name="normal" value="%d{yyyy-MM-dd HH:mm:ss.SSS}[%thread][%-5level]%msg %X{user}"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${plain}</pattern>
+            <charset>${encoding}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${log.dir}/file.log</File>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${log.dir}/file.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 每产生一个日志文件，该日志文件的保存期限为30天 -->
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${std}</pattern>
+            <charset>${encoding}</charset> <!-- 此处设置字符集 -->
+        </encoder>
+    </appender>
+
+    <logger name="root">
+        <level value="ERROR" />
+    </logger>
+
+    <logger name="io.dolphin">
+        <level value="DEBUG"/>
+    </logger>
+
+    <!-- 控制台输出日志级别 -->
+    <root>
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="file" />
+    </root>
+</configuration>
