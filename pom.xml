@@ -21,6 +21,7 @@
         <module>01-activiti-second-approve-demo</module>
         <module>02-activiti-engine-config</module>
         <module>03-activiti-services</module>
+        <module>04-activiti-dbentity</module>
     </modules>
 
     <properties>
