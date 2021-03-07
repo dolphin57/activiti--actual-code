@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration debug="false" scan="true" scanPeriod="30 seconds">
+    <property name="log.dir" value="target/logs"/>
+    <property name="encoding" value="UTF-8"/>
+    <property name="plain" value="%msg%n"/>
+    <property name="std" value="%d{HH:mm:ss.SSS}[%thread][%-5level]%msg %X{user} %logger{10}.%M:%L%n"/>
+    <property name="normal" value="%d{yyyy-MM-dd HH:mm:ss.SSS}[%thread][%-5level] %logger{10}.%M:%L  %msg%n"/>
+    <!--
+         - MDC 配置:
+         - ProcessDefinitionId: 流程定义 id
+         - executionId:
+         - mdcProcessInstanceId: 流程实例 id
+         - mdcBusinessKey: 业务 key
+     -->
+    <property name="mdc" value="%d{HH:mm:ss.SSS} [%thread] [%level] %msg ProcessDefinitionId=%X{mdcProcessDefinitionID}
+    executionId=%X{mdcExecutionId} mdcProcessInstanceId=%X{mdcProcessInstanceId} mdcBusinessKey=%X{mdcBusinessKey} %logger{10}.%M:%L%n"/>
+
+    <!-- 控制台输出 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${mdc}</pattern>
+            <charset>${encoding}</charset>
+        </encoder>
+    </appender>
+
+    <!-- 时间滚动输出 level为 ALL 日志 -->
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${log.dir}/file.log</File>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${log.dir}/file.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 每产生一个日志文件，该日志文件的保存期限为30天 -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${std}</pattern>
+            <charset>${encoding}</charset> <!-- 此处设置字符集 -->
+        </encoder>
+    </appender>
+
+    <logger name="root">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="io.dolphin">
+        <level value="INFO"/>
+    </logger>
+
+    <!-- 控制台输出日志级别 -->
+    <root>
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="file" />
+    </root>
+</configuration>
