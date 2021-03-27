@@ -6,7 +6,7 @@ import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.activiti.engine.impl.util.CollectionUtil;
+import org.activiti.engine.TaskService;
 import org.activiti.engine.task.Task;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,85 +27,88 @@ import java.util.Map;
 @Slf4j
 public class TaskController extends BaseController {
 
+    private final TaskService taskService;
+
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
+
     @PostMapping(path = "findTaskByAssignee")
     @ApiOperation(value = "根据流程assignee查询当前人的个人任务", notes = "根据流程assignee查询当前人的个人任务")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "assignee", value = "代理人（当前用户）", dataType = "String", paramType = "query"),
+            @ApiImplicitParam(name = "assignee", value = "代理人（当前用户）", dataType = "String", paramType = "query", example = ""),
     })
     public RestMessage findTaskByAssignee(@RequestParam("assignee") String assignee) {
-        RestMessage restMessage = new RestMessage();
+        RestMessage RestMessage = new RestMessage();
 
+        //创建任务查询对象
+        List<Task> taskList;
         try {
-            //指定个人任务查询
-            List<Task> taskList = taskService.createTaskQuery().taskAssignee(assignee).list();
-            if (CollectionUtil.isNotEmpty(taskList)) {
-                List<Map<String, String>> resultList = new ArrayList<>();
-                for (Task task : taskList) {
-                    Map<String, String> resultMap = new HashMap<>();
-                    /* 任务ID */
-                    resultMap.put("taskID", task.getId());
-                    /* 任务名称 */
-                    resultMap.put("taskName", task.getName());
-                    /* 任务的创建时间 */
-                    resultMap.put("taskCreateTime", task.getCreateTime().toString());
-                    /* 任务的办理人 */
-                    resultMap.put("taskAssignee", task.getAssignee());
-                    /* 流程实例ID */
-                    resultMap.put("processInstanceId", task.getProcessInstanceId());
-                    /* 执行对象ID */
-                    resultMap.put("executionId", task.getExecutionId());
-                    /* 流程定义ID */
-                    resultMap.put("processDefinitionId", task.getProcessDefinitionId());
-                    resultList.add(resultMap);
-                }
-                restMessage = RestMessage.success("查询成功", resultList);
-            } else {
-                restMessage = RestMessage.success("查询成功", null);
-            }
+            taskList = taskService.createTaskQuery()
+                    //指定个人任务查询
+                    .taskAssignee(assignee)
+                    .list();
         } catch (Exception e) {
-            restMessage = RestMessage.fail("查询失败", e.getMessage());
-            log.error("根据流程assignee查询当前人的个人任务,异常:{}", e);
-            return restMessage;
+            RestMessage = RestMessage.fail("查询失败", e.getMessage());
+            e.printStackTrace();
+            return RestMessage;
         }
-        return restMessage;
-    }
 
+        if (taskList != null && taskList.size() > 0) {
+            List<Map<String, String>> resultList = new ArrayList<>();
+            for (Task task : taskList) {
+                Map<String, String> resultMap = new HashMap<>(7);
+                /* 任务ID */
+                resultMap.put("taskID", task.getId());
+
+                /* 任务名称 */
+                resultMap.put("taskName", task.getName());
+
+                /* 任务的创建时间 */
+                resultMap.put("taskCreateTime", task.getCreateTime().toString());
+
+                /* 任务的办理人 */
+                resultMap.put("taskAssignee", task.getAssignee());
+
+                /* 流程实例ID */
+                resultMap.put("processInstanceId", task.getProcessInstanceId());
+
+                /* 执行对象ID */
+                resultMap.put("executionId", task.getExecutionId());
+
+                /* 流程定义ID */
+                resultMap.put("processDefinitionId", task.getProcessDefinitionId());
+                resultList.add(resultMap);
+            }
+            RestMessage = RestMessage.success("查询成功", resultList);
+        } else {
+            RestMessage = RestMessage.success("查询成功", null);
+        }
+
+        return RestMessage;
+    }
 
     @PostMapping(path = "completeTask")
     @ApiOperation(value = "完成任务", notes = "完成任务，任务进入下一个节点")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "taskId", value = "任务ID", dataType = "String", paramType = "query"),
-            @ApiImplicitParam(name = "variables", value = "填充参数", dataType = "body", paramType = "query"),
+            @ApiImplicitParam(name = "taskId", value = "任务ID", dataType = "String", paramType = "query", example = ""),
+            @ApiImplicitParam(name = "days", value = "请假天数", dataType = "int", paramType = "query", example = ""),
     })
-    public RestMessage completeTask(@RequestParam("taskId") String taskId, Map<String, Object> variables) {
+    public RestMessage completeTask(@RequestParam("taskId") String taskId,
+                                    @RequestParam("days") int days) {
 
-        RestMessage restMessage = new RestMessage();
+        RestMessage RestMessage = new RestMessage();
+
         try {
+            HashMap<String, Object> variables = new HashMap<>(1);
+            variables.put("days", days);
             taskService.complete(taskId, variables);
-            restMessage = RestMessage.fail("完成任务成功", taskId);
         } catch (Exception e) {
-            restMessage = RestMessage.fail("完成任务失败", e.getMessage());
-            log.error("完成任务,异常:{}", e);
+            RestMessage = RestMessage.fail("提交失败", e.getMessage());
+            e.printStackTrace();
+            return RestMessage;
         }
-        return restMessage;
-    }
-
-
-    @PostMapping(path = "turnTask")
-    @ApiOperation(value = "任务转办", notes = "任务转办，把任务交给别人处理")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "taskId", value = "任务ID", dataType = "String", paramType = "query"),
-            @ApiImplicitParam(name = "userKey", value = "用户Key", dataType = "String", paramType = "query"),
-    })
-    public RestMessage turnTask(@RequestParam("taskId") String taskId, @RequestParam("userKey") String userKey) {
-        RestMessage restMessage = new RestMessage();
-        try {
-            taskService.setAssignee(taskId, userKey);
-            restMessage = RestMessage.fail("完成任务成功", taskId);
-        } catch (Exception e) {
-            restMessage = RestMessage.fail("完成任务失败", e.getMessage());
-            log.error("任务转办,异常:{}", e);
-        }
-        return restMessage;
+        RestMessage = RestMessage.fail("提交成功", taskId);
+        return RestMessage;
     }
 }
